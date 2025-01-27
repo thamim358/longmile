@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: your-site-name
-    env: php
+    name: longmile
+    runtime: php
     buildCommand: composer install
     startCommand: vendor/bin/heroku-php-apache2
     envVars:
       - key: PHP_VERSION
-        value: 8.0
+        value: 8.1
