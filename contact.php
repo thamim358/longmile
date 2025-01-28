@@ -1,5 +1,4 @@
 <?php
-
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -7,116 +6,135 @@ require 'include/phpmailer/src/Exception.php';
 require 'include/phpmailer/src/PHPMailer.php';
 require 'include/phpmailer/src/SMTP.php';
 
-if (isset($_POST['submit']))
-{
-$name = $_POST ['name'];
-$phone = $_POST ['phone'];
-$email = $_POST ['email'];
-$subject = $_POST ['subject'];
-$message = $_POST ['message'];
+if (isset($_POST['submit'])) {
+    function sanitizeInput($input) {
+        $input = trim($input);
+        $input = strip_tags($input);
+        $input = htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
+        return $input;
+    }
 
-$error = array();
+    $name = sanitizeInput($_POST['name'] ?? '');
+    $phone = sanitizeInput($_POST['phone'] ?? '');
+    $email = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
+    $subject = sanitizeInput($_POST['subject'] ?? '');
+    $message = sanitizeInput($_POST['message'] ?? '');
 
-$conn = new mysqli('localhost', 'nakulan', 'nakulan@2023', 'longmile');
-// $conn = new mysqli('localhost', 'root', '', 'test');
-//Check for connection error
-if($conn->connect_error){
-  die("Error in DB connection: ".$conn->connect_errno." : ".$conn->connect_error);    
-}
-$insert = 'INSERT INTO `contact` (`id`, `Name`, `Phone`, `Email`, `Subject`, `Message`) 
-		VALUES (`id`, "'.$name.'", "'.$phone.'", "'.$email.'", "'.$subject.'", "'.$message.'")';	
-		
-		$sql = mysqli_query($conn, $insert);
-		if($sql){
-		 echo '<script language="javascript">';
-            echo 'alert("Your Message successfully sent, we will get back to you ASAP.");';
-        // echo 'window.location.go(-1)';
-        // echo "Thank you for register u got a noti";
-        echo '</script>';
-		}
-// /* creates object */
-// $mail = new PHPMailer;
+    $errors = array();
+    if (empty($name)) $errors[] = "Name is required";
+    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "Valid email is required";
+    if (empty($subject)) $errors[] = "Subject is required";
+    if (empty($message)) $errors[] = "Message is required";
 
-// $mailid = "contactus@longmilefashions.com";
-// $details = "<br><p>UserName: ".$name."</p><br>
-// 			<p>Email: ".$email."</p><br>
-// 			<p>Phone: ".$phone."</p><br>
-//             <p>Message: ".$message."</p>";
+    if (empty($errors)) {
+        try {
+            $dsn = "mysql:host=localhost;dbname=longmile;charset=utf8mb4";
+            $pdo = new PDO($dsn, 'nakulan', 'nakulan@2023');
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// // $mail->IsSMTP();
-// $mail->isHTML(true);
-// $mail->SMTPDebug = 2;
-// $mail->SMTPAuth = false;
-// $mail->SMTPAutoTLS = false;
-// $mail->Host = "localhost";
-// $mail->Port = '25';
-// $mail->AddAddress($mailid);
-// $mail->Username ="contactus@longmilefashions.com";
-// $mail->Password ="Longmile@5888";
-// $mail->SetFrom('contactus@longmilefashions.com','Longmile Fashions');
-// $mail->AddReplyTo('contactus@longmilefashions.com','Longmile Fashions');
-// $mail->Subject = $subject;
-// $mail->Body = $details;
-// $mail->AltBody = $message;
-// if($mail->Send())
-// {
-//     $rs = mysqli_query($conn, $insert);
-//     if($rs){
-        
-//         // echo '<script language="javascript">';
-//         echo 'alert("Your Message successfully sent, we will get back to you ASAP.");';
-//         // echo 'window.location.go(-1)';
-//         // echo "Thank you for register u got a noti";
-//         // echo '</script>';
-//     }
-// }else{
-// 	echo 'Message could not be sent. Mailer Error:' .$mail->ErrorInfo;
-// }
+            $stmt = $pdo->prepare("INSERT INTO contact (Name, Phone, Email, Subject, Message) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$name, $phone, $email, $subject, $message]);
 
-//     $recipient = 'longmilefashions@gmail.com';
-    
-//     $mail = new PHPMailer();
-//  try {
+            $mail = new PHPMailer(true);
+            
+            $mail->Debugoutput = function($str, $level) {
+                error_log("SMTP Debug: $str");
+            };
 
-//         $mail->isSMTP();
-//         $mail->Host = 'smtp.gmail.com';
-//         $mail->SMTPAuth = true;
-//         $mail->Username = 'longmilefashions@gmail.com';
-//         $mail->Password = 'dpvrzoxtaebpwdhm';
-//         $mail->SMTPSecure = 'ssl';
-//         $mail->Port = 465;
-        
-//         // $mail->Host = "smtpout.secureserver.net"; 
-//         // $mail->SMTPAuth = true;
-//         // $mail->Username = 'contactus@maktechnologiesllc.com'; 
-//         // $mail->Password = 'maktech2022';  
-//         // $mail->SMTPSecure = 'tls';
-//         // $mail->Port = 80;  
+            $mail->isSMTP();
+            $mail->Host = 'mail.longmilefashions.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'contactus@longmilefashions.com';
+            $mail->Password = 'Longmilenakulan@1'; 
 
 
-//           $mail->setFrom($email, $name);
-//           $mail->addAddress($recipient);
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            $mail->Port = 465;
 
+            $mail->Timeout = 30;
+            $mail->SMTPKeepAlive = true;
+            
+            // Recipients
+            $mail->setFrom('contactus@longmilefashions.com', 'Longmile Fashions');
+            $mail->addAddress('contactus@longmilefashions.com', 'Longmile Fashions Team');
+            
+            // Content
+            $mail->isHTML(true);
+            $mail->Subject = 'New Contact Form Submission: ' . $subject;
+            $mail->Body = "
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; }
+                        .container { padding: 20px; }
+                        .field { margin-bottom: 10px; }
+                        .label { font-weight: bold; }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <h2>New Contact Form Submission</h2>
+                        <div class='field'>
+                            <span class='label'>Name:</span> {$name}
+                        </div>
+                        <div class='field'>
+                            <span class='label'>Phone:</span> {$phone}
+                        </div>
+                        <div class='field'>
+                            <span class='label'>Email:</span> {$email}
+                        </div>
+                        <div class='field'>
+                            <span class='label'>Subject:</span> {$subject}
+                        </div>
+                        <div class='field'>
+                            <span class='label'>Message:</span><br>
+                            " . nl2br(htmlspecialchars($message)) . "
+                        </div>
+                    </div>
+                </body>
+                </html>
+            ";
+            $mail->AltBody = "New Contact Form Submission\n\nName: $name\nPhone: $phone\nEmail: $email\nSubject: $subject\nMessage: $message";
 
-        
-//           $mail->Subject = $subject;
-//           $mail->Body = "Name: " . $name . "\nEmail: " . $email . "\nPhone: " .  $phone . "\nSubject: " . $subject . "\n\nMessage: " . $message;
-//           $response = "";
-//           if ($mail->send()) {
-//                           echo 'alert("In Mailer");';
+            if (!$mail->send()) {
 
-//               $response = "Thank you! Your message has been sent.";
-//               echo "<script>alert('" . $response . "');</script>";
-//           } else {
-//               $response = "Sorry, there was an error sending your message. Please try again later.";
-//               $response .= "<br>Error details: " . $mail->ErrorInfo;
-//           }
-//       } catch (Exception $e) {
-//           $response = "Sorry, there was an error sending your message. Please try again later.";
-//       }
-         
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port = 587;
+                $mail->send();
+            }
+            
+            echo '<script>
+                alert("Thank you! Your message has been sent successfully.");
+                window.location.href = "contact.php";
+            </script>';
+            exit;
+
+        } catch (Exception $e) {
+            error_log("Detailed Mail Error: " . $e->getMessage());
+            error_log("SMTP Debug Info: " . $mail->ErrorInfo);
+            
+            $errorMessage = "Mail Error Details:\n";
+            $errorMessage .= "- Error Message: " . $e->getMessage() . "\n";
+            $errorMessage .= "- SMTP Error: " . $mail->ErrorInfo;
+            
+            echo '<script>
+                alert("An error occurred while sending the email. Technical details:\n\n' . addslashes($errorMessage) . '");
+                window.location.href = "contact.php";
+            </script>';
+            exit;
+        }
+    } else {
+        $errorMessage = "Please correct the following errors:\n";
+        $errorMessage .= implode("\n", $errors);
+        echo '<script>
+            alert("' . addslashes($errorMessage) . '");
+            window.location.href = "contact.php";
+        </script>';
+        exit;
+    }
 }
 ?>
+
 <!DOCTYPE html>
 <html dir="ltr" lang="en-US">
 	<head>
@@ -385,77 +403,81 @@ $insert = 'INSERT INTO `contact` (`id`, `Name`, `Phone`, `Email`, `Subject`, `Me
 
 			<!-- Footer
 			============================================= -->
-			<footer id="footer" class="border-0" style="background-color: #052342;">
-    <div class="container clearfix">
-        <!-- Footer Widgets -->
-        <div class="footer-widgets-wrap">
-            <div class="row">
-                <!-- Left Section -->
-                <div class="col-12 col-md-6">
-                    <div class="fw-normal mb-0 text-white">
-                        <img src="one-page/images/logo/longmilenew.png" style="width: 18rem;" />
-                    </div>
-					<div class="mb-0 text-white mt-4 ">
-					<img src="one-page/images/logo/Ananda.png" style="width: 22rem;" />
-                    </div>
-					
-                </div>
+			<footer id="footer" class="bg-dark py-5" style="background-color: #052342 !important;">
+				<div class="container">
+					<div class="row g-4">
+						<!-- Logo Column -->
+						<div class="col-12 col-md-4 d-flex flex-column align-items-center align-items-md-start">
+							<img src="one-page/images/logo/longmilenew.png" alt="Longmile Logo" class="img-fluid mb-4" style="width: 18rem;">
+							<img src="one-page/images/logo/Ananda.png" alt="Ananda Logo" class="img-fluid" style="width: 22rem;">
+						</div>
 
-                <!-- Right Section -->
-                <div class="col-12 col-md-6 ps-4 mt-4">
-                    <div class="d-flex flex-column flex-sm-row justify-content-sm-between justify-content-md-end">
-                        <!-- Enquiry Section -->
-                        <div class="widget widget-twitter-feed m-0">
-                            <h4 class="footer-head">Enquiry</h4>
-                            <ul class="list-unstyled">
-                                <li class="mt-1"><a href="contact.php" class="footer-list">Contact us</a></li>
-                                <li class="mt-1"><a href="aboutus.html" class="footer-list">About us</a></li>
-                            </ul>
-                        </div>
+						<!-- Navigation Links Column -->
+						<div class="col-12 col-md-4">
+							<div class="row">
+								<!-- Enquiry Section -->
+								<div class="col-6">
+									<h4 class="text-white fw-bold mb-3">Enquiry</h4>
+									<ul class="list-unstyled mb-0">
+										<li class="mb-2"><a href="contact.php" class="text-white text-decoration-none">Contact us</a></li>
+										<li><a href="aboutus.html" class="text-white text-decoration-none">About us</a></li>
+									</ul>
+								</div>
+								<!-- About Section -->
+								<div class="col-6">
+									<h4 class="text-white fw-bold mb-3">About</h4>
+									<ul class="list-unstyled mb-0">
+										<li class="mb-2"><a href="capabilities.html" class="text-white text-decoration-none">Capabilities</a></li>
+										<li class="mb-2"><a href="commitment.html" class="text-white text-decoration-none">Commitment</a></li>
+										<li><a href="menswear.html" class="text-white text-decoration-none">Products</a></li>
+									</ul>
+								</div>
+							</div>
+						</div>
 
-                        <!-- About Section -->
-                        <div class="widget widget-twitter-feed m-0">
-                            <h4 class="footer-head">About</h4>
-                            <ul class="list-unstyled">
-                                <li><a href="capabilities.html" class="footer-list">Capabilities</a></li>
-                                <li class="mt-1"><a href="commitment.html" class="footer-list">Commitment</a></li>
-                                <li class="mt-1"><a href="menswear.html" class="footer-list">Products</a></li>
-                            </ul>
+						<!-- Address Column -->
+						<div class="col-12 col-md-4">
+							<h4 class="text-white fw-bold mb-3">Address</h4>
+							<div class="row">
+								<!-- Factory Address -->
+								<div class="col-12 col-md-6 mb-3 mb-md-0">
+									<p class="text-white mb-2 fw-bold">Factory:</p>
+									<address class="text-white mb-0">
+										2/95, Karumandakavandanoor,<br>
+										Uthukuli RS, Tirupur,<br>
+										Tamilnadu, India - 638052
+									</address>
+								</div>
+								<!-- Registered Office -->
+								<div class="col-12 col-md-6">
+									<p class="text-white mb-2 fw-bold">Regd Office:</p>
+									<address class="text-white mb-0">
+										82/2, Whitefields, RS Road,<br>
+										Perundurai, Tamilnadu,<br>
+										India - 638052
+									</address>
+								</div>
+								
+							</div>
+							<!-- Social Media -->
+							<div class="mt-3">
+								<a href="https://www.linkedin.com/company/longmilefashions/" 
+								class="social-icon inline-block border-0 si-small si-linkedin text-white"
+								style="background-color: #34424f; border-radius:100%" title="linkedin">
+									<i class="icon-linkedin text-white"></i>
+								</a>
+							</div>
+						</div>
+					</div>
 
-                            <!-- Brochure Image -->
-                            <div class="pt-2 mb-3">
-						
-                                <div class="mt-2 p-1">
-                                    <a href="[BROCHURE_LINK]" target="_blank" class="footer-list text-white" style="text-decoration: underline;">
-                                        Download Brochure
-                                    </a>
-                                </div>
-                            </div>
-
-                            <!-- Social Media -->
-                            <div class="pt-2 pl-5 ml-3">
-                                <a href="https://www.linkedin.com/company/longmilefashions/"
-                                    class="social-icon inline-block border-0 si-small si-linkedin text-white"
-                                    style="background-color: #34424f; border-radius:100%" title="linkedin">
-                                    <i class="icon-linkedin"></i>
-                                    <i class="icon-linkedin"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Copyright Section -->
-                <div class="ps-4 pt-4">
-                    <span class="copyright">© 2024 Longmile Fashions. All rights reserved.</span>
-                </div>
-            </div>
-        </div>
-        <!-- .footer-widgets-wrap end -->
-    </div>
-
-    <div class="line m-0"></div>
-</footer><!-- #footer end -->
+					<!-- Copyright -->
+					<div class="row mt-5">
+						<div class="col-12 text-center">
+							<p class="text-white mb-0">&copy; 2024 Longmile Fashions. All rights reserved.</p>
+						</div>
+					</div>
+				</div>
+			</footer>
 
 		</div><!-- #wrapper end -->
 
