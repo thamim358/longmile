@@ -343,19 +343,43 @@ $insert = 'INSERT INTO `contact` (`id`, `Name`, `Phone`, `Email`, `Subject`, `Me
 						</div>
 					</section>
 					<div class="container p-5 pt-0">
-						<div class="row">
-							<div class="col-lg-6 center">
-								<div class="pt-5"><img src="one-page/images/works/email.png" style="height: 4rem"/></div>
-								<p class="pt-2 ps-4 about-title mb-2">Email Address:</p>
-								<a href="mailto:contact@longmilefashions.com" class="ps-4 about-content">contact@longmilefashions.com</a>
-							</div>
-							<div class="col-lg-6 center">
-								<div class="pt-5"><img src="one-page/images/works/location.png" style="height: 4rem"/></div>
-								<p class="pt-2 ps-4 about-title mb-2">Regd Address:</p>
-								<p class="ps-4 about-content">39/82/3, Whitefields, <br> Perundurai-638052 <br> TamilNadu, India</p>									
-							</div>
-						</div>
-					</div>
+  <div class="row">
+    <!-- Email Section -->
+    <div class="col-lg-4 center">
+      <div class="pt-5">
+        <img src="one-page/images/works/email.png" style="height: 4rem" />
+      </div>
+      <p class="pt-2 ps-4 about-title mb-2">Email Address:</p>
+      <!-- <a href="mailto:contact@longmilefashions.com" class="ps-4 about-content">contact@longmilefashions.com</a> -->
+	  <a href="mailto:nakulan@longmilefashions.com" class="ps-4 about-content">nakulan@longmilefashions.com</a>
+	  <a href="mailto:admin@longmilefashions.com" class="ps-4 about-content">admin@longmilefashions.com</a>
+    </div>
+
+    <!-- Factory Section -->
+    <div class="col-lg-4 center">
+      <div class="pt-5">
+        <img src="one-page/images/works/factory.jpg" style="height: 4rem" />
+      </div>
+      <p class="pt-2 ps-4 about-title mb-2">Factory:</p>
+      <p class="ps-4 about-content">
+        2/95, Karumandakavandanoor, Uthukuli RS, <br />
+        Tirupur, Tamilnadu, India - 638052
+      </p>
+    </div>
+
+    <!-- Regd Office Section -->
+    <div class="col-lg-4 center">
+      <div class="pt-5">
+        <img src="one-page/images/works/location.png" style="height: 4rem" />
+      </div>
+      <p class="pt-2 ps-4 about-title mb-2">Regd Office:</p>
+      <p class="ps-4 about-content">
+        82/2, Whitefields, RS Road, <br />
+        Perundurai, Tamilnadu, India - 638052
+      </p>
+    </div>
+  </div>
+</div>
 				</div>
 			</section><!-- #content end -->
 
